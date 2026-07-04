@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analysis Dashboard — ViViT Surveillance AI</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+body { overflow-x: hidden; }
+.dash-wrap { padding: 70px 1.25rem 2rem; max-width: 1400px; margin: 0 auto; }
+.dash-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem; }
+.dash-title { font-family:var(--font-head); font-size:1.4rem; font-weight:700; }
+.status-pill {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  padding:0.3rem 0.9rem; border-radius:50px; font-size:0.8rem;
+  font-weight:600; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3);
+  color:var(--cyan);
+}
+.status-pill.done   { background:rgba(0,255,136,0.1); border-color:rgba(0,255,136,0.3); color:var(--green); }
+.status-pill.error  { background:rgba(255,61,61,0.1);  border-color:rgba(255,61,61,0.3);  color:var(--red); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:currentColor; animation:pulse 1.2s infinite; }
+.status-pill.done .status-dot, .status-pill.error .status-dot { animation:none; }
+
+.top-grid { display:grid; grid-template-columns:1fr 320px; gap:1.25rem; }
+.mid-grid  { display:grid; grid-template-columns:1fr 320px; gap:1.25rem; margin-top:1.25rem; }
+
+/* Video panels */
+.panel { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.panel-head { padding:0.75rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; font-weight:600; }
+.panel-head .icon { font-size:1rem; }
+.panel-body { padding:1rem; }
+
+video.dash-video { width:100%; border-radius:8px; background:#000; aspect-ratio:16/9; object-fit:contain; }
+
+/* Stage list */
+.stage-list { display:flex; flex-direction:column; gap:0.4rem; }
+.s-item { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0.75rem; border-radius:8px; font-size:0.83rem; border:1px solid transparent; transition:all 0.3s; }
+.s-item.waiting { color:var(--text-muted); }
+.s-item.running { border-color:rgba(0,229,255,0.35); background:rgba(0,229,255,0.06); color:var(--text-primary); }
+.s-item.done    { border-color:rgba(0,255,136,0.2); background:rgba(0,255,136,0.04); }
+.s-item.error   { border-color:rgba(255,61,61,0.3); }
+.s-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,0.1); flex-shrink:0; transition:all 0.3s; }
+.s-item.running .s-dot { background:var(--cyan); animation:pulse 1s infinite; }
+.s-item.done    .s-dot { background:var(--green); }
+.s-item.error   .s-dot { background:var(--red); }
+.s-label { flex:1; }
+.s-icon { font-size:0.85rem; }
+
+/* Tracks */
+.tracks-list { display:flex; flex-direction:column; gap:0.6rem; max-height:380px; overflow-y:auto; }
+.t-card { padding:0.75rem; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.02); animation:slideIn 0.3s ease; }
+.t-card.ab { border-color:rgba(255,61,61,0.35); background:rgba(255,61,61,0.04); }
+.t-card.nm { border-color:rgba(0,255,136,0.25); background:rgba(0,255,136,0.03); }
+.t-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; }
+.t-id { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); }
+.t-badge { font-size:0.7rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:50px; }
+.b-crit { background:rgba(255,61,61,0.2); color:#ff7070; }
+.b-high { background:rgba(255,152,0,0.2); color:#ffb74d; }
+.b-low  { background:rgba(0,255,136,0.15); color:var(--green); }
+.t-label { font-weight:600; font-size:0.88rem; margin-bottom:0.35rem; }
+.cbar { background:rgba(255,255,255,0.06); border-radius:3px; height:4px; margin-bottom:0.25rem; }
+.cbar-fill { height:100%; border-radius:3px; transition:width 0.6s; }
+.cbar-ab { background:linear-gradient(90deg,var(--orange),var(--red)); }
+.cbar-nm { background:linear-gradient(90deg,var(--cyan),var(--green)); }
+.t-conf { font-size:0.72rem; color:var(--text-muted); }
+.t-cam { font-size:0.7rem; color:var(--cyan); margin-top:0.2rem; font-family:var(--font-mono); }
+
+/* Log console */
+.log-box { background:#020810; border-radius:8px; padding:0.75rem; height:150px; overflow-y:auto; font-family:var(--font-mono); font-size:0.71rem; line-height:1.65; }
+.l { color:#5a8fc0; }
+.l.g { color:var(--green); }
+.l.r { color:var(--red); }
+.l.o { color:var(--orange); }
+.l.w { color:#c8c800; }
+
+/* Stats row */
+.stats { display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.scard { flex:1; min-width:90px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:0.9rem; text-align:center; }
+.sval { font-family:var(--font-head); font-size:1.8rem; font-weight:700; color:var(--cyan); }
+.sval.red { color:var(--red); }
+.slbl { font-size:0.72rem; color:var(--text-muted); }
+
+/* Report panel */
+.report-wrap { display:none; margin-top:1.25rem; }
+.report-wrap.show { display:block; animation:fadeInUp 0.5s ease; }
+.report-pre { font-family:var(--font-mono); font-size:0.75rem; line-height:1.8; color:#8dd8a0; white-space:pre-wrap; max-height:450px; overflow-y:auto; background:#020810; border-radius:8px; padding:1rem; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav class="navbar">
+  <a href="/" class="navbar-brand"><span class="dot"></span> ViViT<span style="color:var(--green)">AI</span></a>
+  <div class="navbar-links">
+    <a href="/upload.html">← New Upload</a>
+  </div>
+</nav>
+
+<div class="page dash-wrap">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <div class="section-tag">// real-time analysis dashboard</div>
+      <div class="dash-title">Pipeline Execution Monitor</div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">Initialising...</span>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats">
+    <div class="scard"><div class="sval" id="statFrames">–</div><div class="slbl">Frames</div></div>
+    <div class="scard"><div class="sval" id="statTracks">0</div><div class="slbl">Tracks</div></div>
+    <div class="scard"><div class="sval red" id="statAbnormal">0</div><div class="slbl">Abnormal</div></div>
+    <div class="scard"><div class="sval" id="statRisk">–</div><div class="slbl">Scene Risk</div></div>
+  </div>
+
+  <!-- Top grid: video + stages -->
+  <div class="top-grid">
+    <!-- Video -->
+    <div class="panel">
+      <div class="panel-head"><span class="icon">📹</span> Input Video</div>
+      <div class="panel-body">
+        <video id="srcVideo" class="dash-video" controls></video>
+        <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)" id="srcInfo"></div>
+      </div>
+    </div>
+
+    <!-- Pipeline stages -->
+    <div class="panel">
+      <div class="panel-head"><span class="icon">⚙️</span> Pipeline Stages</div>
+      <div class="panel-body">
+        <div class="stage-list" id="stageList">
+          <div class="s-item waiting" id="s-detection"><span class="s-dot"></span><span class="s-label">YOLOv8 Detection</span><span class="s-icon">🎯</span></div>
+          <div class="s-item waiting" id="s-tracking"><span class="s-dot"></span><span class="s-label">ByteTrack Tracking</span><span class="s-icon">🔗</span></div>
+          <div class="s-item waiting" id="s-tube"><span class="s-dot"></span><span class="s-label">Action Tube Generation</span><span class="s-icon">🎬</span></div>
+          <div class="s-item waiting" id="s-binary"><span class="s-dot"></span><span class="s-label">Binary ViViT Gate</span><span class="s-icon">⚡</span></div>
+          <div class="s-item waiting" id="s-finegrained"><span class="s-dot"></span><span class="s-label">Fine-Grained ViViT</span><span class="s-icon">🏷️</span></div>
+          <div class="s-item waiting" id="s-gradcam"><span class="s-dot"></span><span class="s-label">GradCAM++ Explainability</span><span class="s-icon">🔥</span></div>
+          <div class="s-item waiting" id="s-llm"><span class="s-dot"></span><span class="s-label">LLM Report Generation</span><span class="s-icon">🤖</span></div>
+        </div>
+
+        <!-- Log console -->
+        <div style="margin-top:1rem">
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.4rem;font-family:var(--font-mono)">// pipeline log</div>
+          <div class="log-box" id="logBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mid grid: output video + tracks -->
+  <div class="mid-grid" id="midGrid" style="display:none">
+    <!-- Annotated output video -->
+    <div class="panel">
+      <div class="panel-head"><span class="icon">🎥</span> Annotated Output</div>
+      <div class="panel-body">
+        <video id="outVideo" class="dash-video" controls></video>
+        <div style="margin-top:0.75rem;display:flex;gap:0.75rem;flex-wrap:wrap">
+          <a id="dlAnnotated" href="#" class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem" download>⬇ Download Annotated</a>
+          <a id="dlEvents"    href="#" class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem" download>⬇ Download Events Video</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Track results -->
+    <div class="panel">
+      <div class="panel-head"><span class="icon">👥</span> Detected Tracks</div>
+      <div class="panel-body">
+        <div class="tracks-list" id="tracksList">
+          <div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:2rem 0">
+            Waiting for detections...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LLM Report -->
+  <div class="report-wrap" id="reportWrap">
+    <!-- Beautiful Structured Report Section -->
+    <div id="beautifulReport" style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:1.5rem;"></div>
+
+    <!-- Collapsible Raw Report -->
+    <details class="panel" style="border-color:rgba(0,229,255,0.15); cursor:pointer;">
+      <summary class="panel-head" style="color:var(--text-muted); list-style:none; display:flex; align-items:center; gap:0.5rem; outline:none; user-select:none;">
+        <span class="icon">📄</span> Show Raw Text Report
+        <button onclick="copyReport(event)" class="btn btn-outline" style="margin-left:auto; font-size:0.7rem; padding:0.2rem 0.6rem; cursor:pointer;">📋 Copy Raw</button>
+      </summary>
+      <div class="panel-body" style="cursor:default;">
+        <pre class="report-pre" id="reportContent" style="margin:0;"></pre>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const JOB_ID = params.get('job');
+if (!JOB_ID) { location.href = '/upload.html'; }
+
+// ── State ──
+const STAGES = ['detection','tracking','tube','binary','finegrained','gradcam','llm'];
+let stageProgress = 0;
+let trackMap = {};
+let logLines = 0;
+
+// ── Helpers ──
+function setStatus(text, cls='') {
+  const pill = document.getElementById('statusPill');
+  const txt  = document.getElementById('statusText');
+  pill.className = 'status-pill ' + cls;
+  txt.textContent = text;
+}
+
+function advanceStage(n) {
+  for (let i = 0; i < n && i < STAGES.length; i++) {
+    const el = document.getElementById('s-' + STAGES[i]);
+    if (el && !el.classList.contains('done')) {
+      // mark previous as done
+      if (i > 0) {
+        const prev = document.getElementById('s-' + STAGES[i-1]);
+        if (prev) { prev.className = 's-item done'; prev.querySelector('.s-dot').style.animation='none'; }
+      }
+      el.className = 's-item running';
+    }
+  }
+}
+
+function markAllStagesDone() {
+  STAGES.forEach(s => {
+    const el = document.getElementById('s-' + s);
+    if (el) el.className = 's-item done';
+  });
+}
+
+function addLog(msg, cls='') {
+  const box = document.getElementById('logBox');
+  const line = document.createElement('div');
+  line.className = 'l ' + cls;
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+  logLines++;
+  if (logLines > 200) box.removeChild(box.firstChild);
+}
+
+function renderTrack(t) {
+  const isAb  = t.is_abnormal;
+  const fineLabel = t.fine_label || t.label || '';
+  const binaryLabel = t.binary_label || t.binary || '';
+  const fineConf = t.fine_conf !== undefined ? t.fine_conf : (t.conf !== undefined ? t.conf : 0);
+  const binaryConf = t.binary_conf !== undefined ? t.binary_conf : (t.conf !== undefined ? t.conf : 0);
+  const confVal = fineConf || binaryConf;
+
+  const risk  = isAb ? (fineConf >= 0.7 ? 'CRITICAL' : 'HIGH') : 'LOW';
+  const cls   = isAb ? 'ab' : 'nm';
+  const bCls  = risk === 'CRITICAL' ? 'b-crit' : risk === 'HIGH' ? 'b-high' : 'b-low';
+  const barCls= isAb ? 'cbar-ab' : 'cbar-nm';
+
+  const card = document.createElement('div');
+  card.className = `t-card ${cls}`;
+  card.id = `track-${t.track_id}`;
+  card.innerHTML = `
+    <div class="t-top">
+      <span class="t-id">Track #${t.track_id}</span>
+      <span class="t-badge ${bCls}">${risk}</span>
+    </div>
+    <div class="t-label">${fineLabel || binaryLabel}</div>
+    <div class="cbar"><div class="cbar-fill ${barCls}" style="width:${Math.round(confVal*100)}%"></div></div>
+    <div class="t-conf">
+      ${t.frame_start !== undefined ? `Frames: ${t.frame_start}–${t.frame_end} (${t.t_start}s–${t.t_end}s)<br>` : ''}
+      Conf: ${Math.round(confVal*100)}%
+      · ${isAb ? '⚠️ Abnormal' : '✅ Normal'}
+      · via ${t.routed_to || 'binary'}
+    </div>
+    ${t.cam ? '<div class="t-cam">🔥 GradCAM heatmap available</div>' : ''}
+  `;
+
+  const list = document.getElementById('tracksList');
+  const existing = document.getElementById(`track-${t.track_id}`);
+  if (existing) list.replaceChild(card, existing);
+  else {
+    if (list.querySelector('[style]')) list.innerHTML = '';
+    list.appendChild(card);
+  }
+}
+
+function updateStats() {
+  const tracks = Object.values(trackMap);
+  document.getElementById('statTracks').textContent = tracks.length;
+  const nAb = tracks.filter(t=>t.is_abnormal).length;
+  document.getElementById('statAbnormal').textContent = nAb;
+  const hasCrit = tracks.some(t=>t.is_abnormal && t.fine_conf>=0.7);
+  const hasHigh = tracks.some(t=>t.is_abnormal);
+  document.getElementById('statRisk').textContent = hasCrit ? '🚨 CRITICAL' : hasHigh ? '🔴 HIGH' : '🟢 LOW';
+}
+
+// ── Load source video ──
+async function loadSourceVideo() {
+  // We don't have the original video path easily, so just skip preview
+  // (it was already previewed on upload page)
+}
+
+// ── SSE Stream ──
+function startStream() {
+  setStatus('Connecting...', '');
+  addLog('[Dashboard] Connecting to pipeline stream...', '');
+
+  const es = new EventSource(`/api/stream/${JOB_ID}`);
+
+  es.onopen = () => {
+    setStatus('Pipeline Running', '');
+    addLog('[Dashboard] Connected. Pipeline starting...', 'g');
+    // Start advancing stages
+    advanceStage(1);
+    setTimeout(()=>advanceStage(2), 3000);
+    setTimeout(()=>advanceStage(3), 6000);
+  };
+
+  es.onmessage = e => {
+    let ev;
+    try { ev = JSON.parse(e.data); } catch { return; }
+
+    if (ev.type === 'log') {
+      const msg = ev.message || '';
+      const cls = msg.includes('[WARN]')||msg.includes('Warn') ? 'o'
+                : msg.includes('Error')||msg.includes('error') ? 'r'
+                : msg.includes('Done')||msg.includes('ready')||msg.includes('OK') ? 'g'
+                : '';
+      addLog(msg, cls);
+
+      // Infer stage from log messages
+      if (msg.includes('YOLOv8') || msg.includes('Detector')) advanceStage(1);
+      if (msg.includes('ByteTrack') || msg.includes('Tracker')) advanceStage(2);
+      if (msg.includes('TubeManager') || msg.includes('Tube')) advanceStage(3);
+      if (msg.includes('Binary')) advanceStage(4);
+      if (msg.includes('S2:') || msg.includes('fine')) advanceStage(5);
+      if (msg.includes('CAM') || msg.includes('GradCAM')) advanceStage(6);
+      if (msg.includes('LLM') || msg.includes('Llama')) advanceStage(7);
+    }
+
+    if (ev.type === 'status') {
+      addLog('[Status] ' + (ev.message||ev.status), 'g');
+    }
+
+    if (ev.type === 'track') {
+      trackMap[ev.track_id] = ev;
+      renderTrack(ev);
+      updateStats();
+    }
+
+    if (ev.type === 'complete') {
+      es.close();
+      fetchResults();
+    }
+
+    if (ev.type === 'error') {
+      es.close();
+      setStatus('Error', 'error');
+      addLog('[ERROR] ' + ev.message, 'r');
+    }
+  };
+
+  es.onerror = () => {
+    addLog('[Dashboard] Stream ended. Fetching results...', 'o');
+    es.close();
+    setTimeout(fetchResults, 1000);
+  };
+}
+
+async function fetchResults() {
+  try {
+    const r = await fetch(`/api/results/${JOB_ID}`);
+    const d = await r.json();
+    if (d.results) onComplete(d.results);
+  } catch(e) { addLog('[Error] Failed to fetch results: '+e.message, 'r'); }
+}
+
+function onComplete(data) {
+  setStatus('Complete', 'done');
+  markAllStagesDone();
+  addLog('[Pipeline] Analysis complete!', 'g');
+
+  // Show mid grid
+  document.getElementById('midGrid').style.display = 'grid';
+
+  // Render all tracks
+  (data.tracks || []).forEach(t => { trackMap[t.track_id]=t; renderTrack(t); });
+  updateStats();
+
+  // Source video
+  const srcV = document.getElementById('srcVideo');
+  if (srcV && !srcV.src) {
+    srcV.src = `/api/source-video/${JOB_ID}`;
+  }
+
+  // Output videos
+  if (data.output_video) {
+    const v = document.getElementById('outVideo');
+    v.src = data.output_video;
+    document.getElementById('dlAnnotated').href = data.output_video;
+  }
+  if (data.events_video) {
+    document.getElementById('dlEvents').href = data.events_video;
+  }
+
+  // LLM Report
+  const report = data.llm_report || '';
+  if (report.trim()) {
+    document.getElementById('reportContent').textContent = report;
+    document.getElementById('reportWrap').classList.add('show');
+    renderBeautifulReport(report);
+  }
+
+  // Stats
+  document.getElementById('statTracks').textContent = data.total_tracks || 0;
+  document.getElementById('statAbnormal').textContent = data.abnormal || 0;
+}
+
+function parseSurveillanceReport(text) {
+  if (!text) return null;
+  const result = {
+    video: '',
+    generated: '',
+    tracks: [],
+    sceneSummary: { text: '', risk: '', actions: [] }
+  };
+  const videoMatch = text.match(/Video\s*:\s*(.+)/i);
+  if (videoMatch) result.video = videoMatch[1].trim();
+  const genMatch = text.match(/Generated\s*:\s*(.+)/i);
+  if (genMatch) result.generated = genMatch[1].trim();
+
+  const trackSections = text.split(/---------------------------------------+/);
+  for (let i = 0; i < trackSections.length; i++) {
+    const sec = trackSections[i];
+    if (sec.includes('Track ID')) {
+      const idMatch = sec.match(/Track ID\s*:\s*(\d+)/i);
+      const framesMatch = sec.match(/Frames\s*:\s*([^\n]+)/i);
+      const categoryMatch = sec.match(/Category\s*:\s*([^\n]+)/i);
+      const actionMatch = sec.match(/Action\s*:\s*([^\n]+)/i);
+      const riskMatch = sec.match(/Risk\s*:\s*([^\n]+)/i);
+      let analysis = '';
+      const analysisIndex = sec.indexOf('Analysis:');
+      if (analysisIndex !== -1) {
+        analysis = sec.substring(analysisIndex + 9).trim();
+      }
+      if (idMatch) {
+        result.tracks.push({
+          id: idMatch[1].trim(),
+          frames: framesMatch ? framesMatch[1].trim() : '',
+          category: categoryMatch ? categoryMatch[1].trim() : '',
+          action: actionMatch ? actionMatch[1].trim() : '',
+          risk: riskMatch ? riskMatch[1].trim() : '',
+          analysis: analysis
+        });
+      }
+    }
+  }
+
+  const summaryParts = text.split(/SCENE SUMMARY\s*\n---------------------------------------+/i);
+  if (summaryParts.length > 1) {
+    const sumSec = summaryParts[1].split(/===+/)[0];
+    const lines = sumSec.split('\n').map(l => l.trim()).filter(Boolean);
+    let analysisLines = [];
+    let risk = '';
+    let actions = [];
+    let parsingActions = false;
+    for (let line of lines) {
+      if (line.toLowerCase().startsWith('overall scene risk:')) {
+        risk = line.split(':')[1].trim();
+        parsingActions = false;
+      } else if (line.toLowerCase().startsWith('recommended actions:')) {
+        parsingActions = true;
+      } else if (parsingActions) {
+        const cleanLine = line.replace(/^\d+\.\s*/, '').trim();
+        if (cleanLine) actions.push(cleanLine);
+      } else {
+        analysisLines.push(line);
+      }
+    }
+    result.sceneSummary.text = analysisLines.join(' ');
+    result.sceneSummary.risk = risk;
+    result.sceneSummary.actions = actions;
+  }
+  return result;
+}
+
+function renderBeautifulReport(reportText) {
+  const r = parseSurveillanceReport(reportText);
+  if (!r) return;
+  const container = document.getElementById('beautifulReport');
+  container.style.display = 'flex';
+  
+  let tracksHtml = '';
+  r.tracks.forEach(t => {
+    const isCrit = t.risk.includes('CRITICAL') || t.risk.includes('🚨');
+    const isHigh = t.risk.includes('HIGH') || t.risk.includes('🔴');
+    const borderStyle = isCrit ? 'border-left: 5px solid var(--red); background: rgba(255, 61, 61, 0.03);' 
+                     : isHigh ? 'border-left: 5px solid var(--orange); background: rgba(255, 152, 0, 0.03);'
+                     : 'border-left: 5px solid var(--green); background: rgba(0, 255, 136, 0.03);';
+    const riskBadgeClass = isCrit ? 'b-crit' : isHigh ? 'b-high' : 'b-low';
+    tracksHtml += `
+      <div class="card" style="padding: 1.25rem; ${borderStyle} border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+          <div style="font-family:var(--font-head); font-size:1.05rem; font-weight:700; color:var(--text-primary);">
+            Track #${t.id} Analysis
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <span class="t-badge ${riskBadgeClass}" style="font-size:0.75rem; padding:0.25rem 0.6rem;">${t.risk}</span>
+            <span style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); background:rgba(255,255,255,0.05); padding:0.25rem 0.5rem; border-radius:4px;">${t.frames}</span>
+          </div>
+        </div>
+        <div style="font-size:0.88rem; color:var(--text-primary); margin-bottom:0.75rem; line-height:1.65;">
+          ${t.analysis}
+        </div>
+        <div style="display:flex; gap:1.5rem; font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono); border-top:1px solid rgba(255,255,255,0.05); padding-top:0.6rem;">
+          <div><strong>Category:</strong> ${t.category}</div>
+          <div><strong>Action:</strong> ${t.action}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  const overallRisk = r.sceneSummary.risk;
+  const isSceneCrit = overallRisk.includes('CRITICAL') || overallRisk.includes('🚨') || overallRisk.includes('HIGH');
+  const sceneRiskColor = isSceneCrit ? 'var(--red)' : 'var(--green)';
+  const sceneBg = isSceneCrit ? 'rgba(255, 61, 61, 0.05)' : 'rgba(0, 255, 136, 0.05)';
+  const sceneBorder = isSceneCrit ? 'rgba(255, 61, 61, 0.25)' : 'rgba(0, 255, 136, 0.25)';
+  let actionsHtml = '';
+  if (r.sceneSummary.actions.length > 0) {
+    actionsHtml = `
+      <div style="margin-top: 1rem;">
+        <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:0.5rem; font-family:var(--font-mono);">Recommended Actions</div>
+        <ul style="padding-left:1.25rem; font-size:0.85rem; color:var(--text-primary); display:flex; flex-direction:column; gap:0.4rem; line-height:1.5;">
+          ${r.sceneSummary.actions.map(act => `<li>${act}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <!-- Executive Scene Summary -->
+    <div class="panel" style="border-color: ${sceneBorder}; background: ${sceneBg}; box-shadow: 0 4px 20px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
+      <div class="panel-head" style="color: ${sceneRiskColor}; font-family: var(--font-head); font-size: 1.1rem; font-weight:700;">
+        🛡️ Executive Scene Intelligence Summary
+        <span style="margin-left:auto; font-size:0.8rem; background:rgba(255,255,255,0.08); padding:0.2rem 0.6rem; border-radius:4px; color:var(--text-primary); font-family:var(--font-mono); font-weight:normal;">
+          Overall Risk: ${overallRisk}
+        </span>
+      </div>
+      <div class="panel-body" style="padding: 1.25rem;">
+        <p style="font-size: 0.92rem; color: var(--text-primary); line-height: 1.7; font-weight:500;">
+          ${r.sceneSummary.text || "Analysis complete. No critical behavior detected in this scene."}
+        </p>
+        ${actionsHtml}
+      </div>
+    </div>
+
+    <!-- Individual Track Reports -->
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--cyan); font-family:var(--font-mono);">// AI Track-Level Deep Dive</div>
+      <div style="display:flex; flex-direction:column;">
+        ${tracksHtml}
+      </div>
+    </div>
+  `;
+}
+
+function copyReport(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const txt = document.getElementById('reportContent').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn = (e && e.target) || event.target;
+    const oldText = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(()=>btn.textContent=oldText, 2000);
+  });
+}
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  startStream();
+});
+</script>
+</body>
+</html>

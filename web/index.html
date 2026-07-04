@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ViViT Surveillance AI — Explainable Hierarchical Video Understanding</title>
+<meta name="description" content="AI-powered surveillance system with hierarchical ViViT classification, GradCAM++ explainability, and Llama 3.1 natural language reports.">
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.hero-visual {
+  margin-top: 3rem; position: relative; width: 100%; max-width: 900px;
+}
+.hero-monitor {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 1.25rem; position: relative; overflow: hidden;
+}
+.hero-monitor::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--cyan), var(--green), var(--cyan));
+  background-size: 200% 100%; animation: shimmer 2s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+
+.monitor-bar { display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; }
+.monitor-dot { width:10px; height:10px; border-radius:50%; }
+.monitor-screen {
+  background: #020810; border-radius: 8px; padding: 1rem;
+  font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.7;
+  min-height: 160px; position: relative; overflow: hidden;
+}
+.cursor { display:inline-block; width:8px; height:14px; background:var(--cyan);
+  animation: blink 1s step-end infinite; vertical-align: middle; margin-left:2px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.typed-line { color: #4a9eff; }
+.typed-line .ok { color: var(--green); }
+.typed-line .warn { color: var(--orange); }
+.typed-line .label { color: var(--cyan); }
+
+.counter-row { display:flex; gap:2rem; justify-content:center; margin-top:2rem; flex-wrap:wrap; }
+.counter-item { text-align:center; }
+.counter-val { font-family:var(--font-head); font-size:2.5rem; font-weight:700; color:var(--cyan);
+  background: linear-gradient(135deg,var(--cyan),var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.counter-label { font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem; }
+
+.arch-section { background:var(--bg-secondary); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <span class="dot"></span> ViViT<span style="color:var(--green)">AI</span>
+  </a>
+  <div class="navbar-links">
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#tech">Tech Stack</a>
+    <a href="/upload.html" style="color:var(--cyan);font-weight:600">▶ Try Demo</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">🔬 AI Research Project · Computer Vision</div>
+    <h1 class="hero-title">
+      <span class="accent">Explainable Hierarchical</span><br>
+      Video Understanding<br>
+      <span class="accent2">Framework</span>
+    </h1>
+    <p class="hero-subtitle">
+      Fine-grained activity classification with transformer-based explainability.
+      7-stage hierarchical pipeline combining YOLOv8, ByteTrack, ViViT, GradCAM++,
+      and Llama 3.1 for real-time surveillance analysis.
+    </p>
+    <div class="hero-actions">
+      <a href="/upload.html" class="btn btn-primary">▶ Run Analysis</a>
+      <a href="#architecture" class="btn btn-outline">View Architecture</a>
+    </div>
+
+    <!-- Animated terminal -->
+    <div class="hero-visual">
+      <div class="hero-monitor">
+        <div class="monitor-bar">
+          <div class="monitor-dot" style="background:#ff5f57"></div>
+          <div class="monitor-dot" style="background:#febc2e"></div>
+          <div class="monitor-dot" style="background:#28c840"></div>
+          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);margin-left:0.5rem">
+            surveillance_pipeline.log
+          </span>
+        </div>
+        <div class="monitor-screen" id="terminal"></div>
+      </div>
+    </div>
+
+    <div class="counter-row" style="margin-top:3rem">
+      <div class="counter-item">
+        <div class="counter-val" data-count="7">0</div>
+        <div class="counter-label">Pipeline Stages</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-val" data-count="10">0</div>
+        <div class="counter-label">Action Classes</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-val" data-count="32">0</div>
+        <div class="counter-label">Frames per Tube</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-val" data-count="3">0</div>
+        <div class="counter-label">ViViT Models</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-tag">// capabilities</div>
+    <h2 class="section-title">Full-Stack Surveillance Intelligence</h2>
+    <p class="section-desc">End-to-end pipeline from raw video to natural language incident reports.</p>
+    <div class="feature-grid">
+      <div class="feature-card animate-in">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Person Detection</div>
+        <div class="feature-desc">YOLOv8 real-time person detection with ByteTrack multi-person tracking across frames.</div>
+      </div>
+      <div class="feature-card animate-in">
+        <div class="feature-icon">🎬</div>
+        <div class="feature-title">Action Tube Generation</div>
+        <div class="feature-desc">Per-track 32-frame temporal buffers with ghost padding, stride gating, and smooth eviction.</div>
+      </div>
+      <div class="feature-card animate-in">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Hierarchical ViViT</div>
+        <div class="feature-desc">Binary gate → fine-grained 5-class routing. Three separate ViViT models for Normal, Abnormal, and Binary classification.</div>
+      </div>
+      <div class="feature-card animate-in">
+        <div class="feature-icon">🔥</div>
+        <div class="feature-title">GradCAM++ Explainability</div>
+        <div class="feature-desc">Spatial attention heatmaps from Stage-2 fine-grained classifier. Full-frame event localisation video output.</div>
+      </div>
+      <div class="feature-card animate-in">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title">Temporal Analysis</div>
+        <div class="feature-desc">Frame-wise attention scoring, peak detection, activity onset/offset, and trend direction analysis.</div>
+      </div>
+      <div class="feature-card animate-in">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">LLM Surveillance Reports</div>
+        <div class="feature-desc">Llama 3.1-8B generates natural language analysis for every track with risk assessment and recommended actions.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="section arch-section" id="architecture">
+    <div style="max-width:1200px;margin:0 auto;padding:2rem 0">
+      <div class="section-tag">// pipeline architecture</div>
+      <h2 class="section-title">7-Stage Hierarchical Pipeline</h2>
+      <div class="pipeline-flow" style="margin-top:2.5rem">
+        <div class="pipe-stage">
+          <div class="stage-icon">📹</div>
+          <div class="stage-name">Stage 1</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">Detection</div>
+          <div class="stage-model">YOLOv8</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage">
+          <div class="stage-icon">🔗</div>
+          <div class="stage-name">Stage 2</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">Tracking</div>
+          <div class="stage-model">ByteTrack</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage">
+          <div class="stage-icon">🎬</div>
+          <div class="stage-name">Stage 3</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">Tube Build</div>
+          <div class="stage-model">TubeManager</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage" style="border-color:rgba(0,229,255,0.4)">
+          <div class="stage-icon">⚡</div>
+          <div class="stage-name">Stage 4a</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">Binary Gate</div>
+          <div class="stage-model">ViViT Binary</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage" style="border-color:rgba(0,229,255,0.4)">
+          <div class="stage-icon">🏷️</div>
+          <div class="stage-name">Stage 4b</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">Fine-Grained</div>
+          <div class="stage-model">ViViT ×2</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage" style="border-color:rgba(255,152,0,0.4)">
+          <div class="stage-icon">🔥</div>
+          <div class="stage-name">Stage 5</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">GradCAM++</div>
+          <div class="stage-model">Explainability</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-stage" style="border-color:rgba(0,255,136,0.4)">
+          <div class="stage-icon">🤖</div>
+          <div class="stage-name">Stage 6</div>
+          <div class="stage-name-text" style="font-weight:600;font-size:0.85rem">LLM Report</div>
+          <div class="stage-model">Llama 3.1</div>
+        </div>
+      </div>
+
+      <!-- Output cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:2rem">
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">🎥</div>
+          <div style="font-weight:600;margin-bottom:0.25rem">Annotated Video</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">BBoxes + GradCAM + Labels + Risk badges</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">🗺️</div>
+          <div style="font-weight:600;margin-bottom:0.25rem">Events Video</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">Full-frame heatmap localisation</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">📋</div>
+          <div style="font-weight:600;margin-bottom:0.25rem">LLM Reports</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">Per-track + scene summary JSON/TXT</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTION CLASSES -->
+  <section class="section">
+    <div class="section-tag">// classification taxonomy</div>
+    <h2 class="section-title">10-Class Activity Recognition</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem;max-width:700px">
+      <div class="card" style="border-color:rgba(0,255,136,0.3)">
+        <div style="color:var(--green);font-weight:600;margin-bottom:1rem;font-size:0.85rem;letter-spacing:0.1em">NORMAL ACTIVITIES</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <span>🏀 Basketball</span><span>🚲 Biking</span>
+          <span>🥊 BoxingPunchingBag</span><span>🤸 JumpingJack</span>
+          <span>🐕 WalkingWithDog</span>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(255,61,61,0.3)">
+        <div style="color:var(--red);font-weight:600;margin-bottom:1rem;font-size:0.85rem;letter-spacing:0.1em">ABNORMAL ACTIVITIES</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <span>🥊 Fighting</span><span>🔫 Shooting</span>
+          <span>💰 Robbery</span><span>⚠️ Abuse</span>
+          <span>🚨 Assault</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="section" id="tech" style="padding-top:0">
+    <div class="section-tag">// technology stack</div>
+    <h2 class="section-title">Built With</h2>
+    <div class="tech-grid">
+      <span class="tech-badge">YOLOv8</span>
+      <span class="tech-badge">ByteTrack</span>
+      <span class="tech-badge">ViViT (HuggingFace)</span>
+      <span class="tech-badge">GradCAM++</span>
+      <span class="tech-badge">Llama 3.1-8B-Instruct</span>
+      <span class="tech-badge">PyTorch</span>
+      <span class="tech-badge">FastAPI</span>
+      <span class="tech-badge">OpenCV</span>
+      <span class="tech-badge">NumPy</span>
+      <span class="tech-badge">Transformers</span>
+      <span class="tech-badge">bitsandbytes</span>
+      <span class="tech-badge">Ultralytics</span>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid var(--border);padding:2rem;text-align:center;color:var(--text-muted);font-size:0.8rem">
+    Explainable Hierarchical Video Understanding Framework · ViViT Surveillance AI
+  </footer>
+</div>
+
+<script>
+// Animated terminal
+const lines = [
+  {text:'[Pipeline] Initialising ViViT Surveillance System...', cls:''},
+  {text:'[Detector] YOLOv8 loaded → yolov8n.pt on cuda', cls:'ok'},
+  {text:'[Tracker]  ByteTrack initialised (thresh=0.5, buffer=30f)', cls:'ok'},
+  {text:'[ViViT]    Loading Binary  → binary.pth', cls:''},
+  {text:'[ViViT]    Loading Normal  → normal_vivit_32f.pth', cls:'ok'},
+  {text:'[ViViT]    Loading Abnormal → abnormal_vivit_32f.pth', cls:'ok'},
+  {text:'[Frame  42] Track 1 | S1: Abnormal(91%) → S2: Fighting(87%) [CAM]', cls:'warn'},
+  {text:'[Frame  42] Track 2 | S1: Normal(78%)   → S2: Basketball(71%)', cls:'ok'},
+  {text:'[LLM]  Track 1 | Fighting | Risk=CRITICAL | 8.3s', cls:'warn'},
+  {text:'[Pipeline] Done. 300 frames | 2 tracks | 1 CRITICAL event', cls:'ok'},
+];
+const term = document.getElementById('terminal');
+let li = 0;
+function typeLine() {
+  if (li >= lines.length) { li = 0; term.innerHTML = ''; }
+  const el = document.createElement('div');
+  el.className = 'typed-line' + (lines[li].cls ? ' ' + lines[li].cls : '');
+  el.textContent = lines[li].text;
+  term.appendChild(el);
+  term.scrollTop = term.scrollHeight;
+  li++;
+  setTimeout(typeLine, 600 + Math.random()*400);
+}
+typeLine();
+
+// Counter animation
+document.querySelectorAll('.counter-val[data-count]').forEach(el => {
+  const target = +el.dataset.count;
+  let cur = 0;
+  const step = () => {
+    cur = Math.min(cur + Math.ceil(target/20), target);
+    el.textContent = cur;
+    if (cur < target) requestAnimationFrame(step);
+  };
+  const obs = new IntersectionObserver(e => { if(e[0].isIntersecting){obs.disconnect();step();} });
+  obs.observe(el);
+});
+</script>
+</body>
+</html>

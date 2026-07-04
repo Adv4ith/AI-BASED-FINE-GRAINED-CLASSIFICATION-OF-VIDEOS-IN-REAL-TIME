@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upload Video — ViViT Surveillance AI</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.upload-page { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 1.5rem 2rem; }
+.upload-container { width:100%; max-width:700px; }
+.upload-header { text-align:center; margin-bottom:2.5rem; }
+.file-info { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; display:none; margin-top:1rem; }
+.file-info.visible { display:flex; align-items:center; gap:1rem; animation:fadeInUp 0.3s ease; }
+.file-icon { font-size:2rem; }
+.file-meta { flex:1; }
+.file-name { font-weight:600; margin-bottom:0.2rem; word-break:break-all; }
+.file-size { font-size:0.8rem; color:var(--text-muted); }
+.options-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem; }
+.option-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+  padding:1rem; display:flex; align-items:flex-start; gap:0.75rem; cursor:pointer;
+  transition:all 0.2s;
+}
+.option-card:hover { border-color:rgba(0,229,255,0.4); }
+.option-card input[type=checkbox] { accent-color:var(--cyan); width:16px; height:16px; margin-top:2px; flex-shrink:0; }
+.option-title { font-weight:600; font-size:0.9rem; margin-bottom:0.2rem; }
+.option-desc { font-size:0.78rem; color:var(--text-muted); }
+.upload-actions { margin-top:1.5rem; display:flex; gap:1rem; }
+.error-msg { color:var(--red); font-size:0.85rem; margin-top:0.5rem; display:none; }
+.error-msg.visible { display:block; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav class="navbar">
+  <a href="/" class="navbar-brand"><span class="dot"></span> ViViT<span style="color:var(--green)">AI</span></a>
+  <div class="navbar-links">
+    <a href="/">Home</a>
+    <a href="/upload.html" class="active">Upload</a>
+  </div>
+</nav>
+
+<div class="page upload-page">
+  <div class="upload-container">
+    <div class="upload-header">
+      <div class="section-tag" style="justify-content:center;display:flex">// video upload</div>
+      <h1 class="section-title" style="text-align:center">Upload Surveillance Video</h1>
+      <p style="color:var(--text-muted);text-align:center;font-size:0.9rem">
+        Upload a video file to run the full hierarchical ViViT analysis pipeline.
+      </p>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="upload-zone" id="dropZone">
+      <div class="upload-icon">📹</div>
+      <div class="upload-title">Drop your video here</div>
+      <div class="upload-hint">or click to browse files</div>
+      <div class="upload-formats">MP4 · AVI · MOV · MKV</div>
+      <input type="file" id="fileInput" accept=".mp4,.avi,.mov,.mkv" style="display:none">
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- File info card -->
+    <div class="file-info" id="fileInfo">
+      <div class="file-icon">🎬</div>
+      <div class="file-meta">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+      </div>
+      <button class="btn btn-outline" style="padding:0.4rem 0.8rem;font-size:0.8rem" onclick="clearFile()">✕ Remove</button>
+    </div>
+
+    <!-- Video preview -->
+    <div id="previewWrap" style="display:none;margin-top:1rem">
+      <video id="videoPreview" class="video-preview" controls></video>
+    </div>
+
+    <!-- Upload options -->
+    <div class="options-grid">
+      <label class="option-card">
+        <input type="checkbox" id="optGradcam" checked>
+        <div>
+          <div class="option-title">🔥 GradCAM++ Heatmaps</div>
+          <div class="option-desc">Generate spatial attention overlays on detected persons</div>
+        </div>
+      </label>
+      <label class="option-card">
+        <input type="checkbox" id="optLLM">
+        <div>
+          <div class="option-title">🤖 LLM Reports</div>
+          <div class="option-desc">Generate Llama 3.1 surveillance analysis (requires HF token)</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- Upload progress -->
+    <div id="uploadProgress" style="display:none;margin-top:1.5rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem">
+        <span style="font-size:0.85rem">Uploading...</span>
+        <span id="uploadPct" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--cyan)">0%</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="uploadBar"></div></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="upload-actions">
+      <button class="btn btn-primary" id="analyzeBtn" disabled onclick="startAnalysis()">
+        ▶ Run Analysis
+      </button>
+      <a href="/" class="btn btn-outline">← Back</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('fileInput');
+const fileInfo   = document.getElementById('fileInfo');
+const fileName   = document.getElementById('fileName');
+const fileSize   = document.getElementById('fileSize');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const errorMsg   = document.getElementById('errorMsg');
+let selectedFile = null;
+
+// Drop zone interactions
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(f) {
+  const allowed = ['video/mp4','video/avi','video/quicktime','video/x-msvideo','video/x-matroska'];
+  const ext = f.name.split('.').pop().toLowerCase();
+  if (!['mp4','avi','mov','mkv'].includes(ext)) {
+    showError('Unsupported format. Please use MP4, AVI, MOV, or MKV.'); return;
+  }
+  hideError();
+  selectedFile = f;
+  fileName.textContent = f.name;
+  fileSize.textContent = (f.size / 1024 / 1024).toFixed(1) + ' MB';
+  fileInfo.classList.add('visible');
+  analyzeBtn.disabled = false;
+
+  // Preview
+  const url = URL.createObjectURL(f);
+  document.getElementById('videoPreview').src = url;
+  document.getElementById('previewWrap').style.display = 'block';
+}
+
+function clearFile() {
+  selectedFile = null; fileInput.value = '';
+  fileInfo.classList.remove('visible');
+  document.getElementById('previewWrap').style.display = 'none';
+  analyzeBtn.disabled = true;
+}
+
+function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('visible'); }
+function hideError()    { errorMsg.classList.remove('visible'); }
+
+async function startAnalysis() {
+  if (!selectedFile) return;
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = 'Uploading...';
+
+  document.getElementById('uploadProgress').style.display = 'block';
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        document.getElementById('uploadBar').style.width = pct + '%';
+        document.getElementById('uploadPct').textContent = pct + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const { job_id } = JSON.parse(xhr.responseText);
+        window.location.href = `/dashboard.html?job=${job_id}`;
+      } else {
+        showError('Upload failed: ' + xhr.statusText);
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '▶ Run Analysis';
+      }
+    };
+
+    xhr.onerror = () => {
+      showError('Network error. Is the server running?');
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '▶ Run Analysis';
+    };
+
+    xhr.send(formData);
+  } catch (e) {
+    showError(e.message);
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = '▶ Run Analysis';
+  }
+}
+</script>
+</body>
+</html>

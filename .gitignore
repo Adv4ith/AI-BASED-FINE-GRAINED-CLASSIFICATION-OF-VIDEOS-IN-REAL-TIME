@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Model Weights (too large for GitHub — download separately)
+model/*.pth
+model/*.pt
+*.pt
+*.pth
+
+# Runtime generated folders
+output/*
+uploads/*
+
+# Keep folder structure
+!output/.gitkeep
+!uploads/.gitkeep
+!model/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+*.txt

@@ -233,11 +233,11 @@ brew install ffmpeg
 
 The three ViViT model weight files are **not stored in this repository** (each ~338 MB). Download them and place them inside the `model/` folder.
 
-| File | Description | Size |
-|------|-------------|------|
-| `binary.pth` | Stage 1 — Binary classifier (Normal / Abnormal) | ~338 MB |
-| `abnormal_vivit_32f.pth` | Stage 3 — Fine-grained abnormal action classifier | ~338 MB |
-| `normal_vivit_32f.pth` | Stage 2 — Fine-grained normal action classifier | ~338 MB |
+| File | Description |
+|------|-------------|
+| `binary.pth` | Stage 1 — Binary classifier (Normal / Abnormal) |
+| `abnormal_vivit_32f.pth` | Stage 3 — Fine-grained abnormal action classifier |
+| `normal_vivit_32f.pth` | Stage 2 — Fine-grained normal action classifier |
 
 > 📥 **Download:** [Google Drive / HuggingFace — add your link here]
 
